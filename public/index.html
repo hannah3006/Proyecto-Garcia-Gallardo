@@ -2,11 +2,152 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Proyecto García-Gallardo</title>
+  <title>CRUD de usuarios</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    input, button {
+      padding: 8px;
+      margin: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    .mensaje {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h1>Gestor de infraestructura Web</h1>
-  <p>Proyecto inicial para la actividad SDLC y diseño.</p>
-  <p>Servidor funcionando correctamente.</p>
+  <h1>CRUD de usuarios</h1>
+
+  <form id="userForm">
+    <input type="hidden" id="userId">
+
+    <input type="text" id="name" placeholder="Nombre" required>
+    <input type="email" id="email" placeholder="Correo" required>
+    <input type="password" id="password" placeholder="Contraseña">
+
+    <button type="submit">Guardar usuario</button>
+    <button type="button" onclick="clearForm()">Cancelar</button>
+  </form>
+
+  <p class="mensaje" id="message"></p>
+
+  <h2>Lista de usuarios</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="usersTable"></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById('userForm');
+    const usersTable = document.getElementById('usersTable');
+    const message = document.getElementById('message');
+
+    async function loadUsers() {
+      const response = await fetch('/api/users');
+      const users = await response.json();
+
+      usersTable.innerHTML = '';
+
+      users.forEach(user => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+          <td>
+            <button onclick="editUser(${user.id}, '${user.name}', '${user.email}')">Editar</button>
+            <button onclick="deleteUser(${user.id})">Eliminar</button>
+          </td>
+        `;
+
+        usersTable.appendChild(row);
+      });
+    }
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      const id = document.getElementById('userId').value;
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const data = id ? { name, email } : { name, email, password };
+      const url = id ? `/api/users/${id}` : '/api/users';
+      const method = id ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        message.textContent = result.mensaje;
+        return;
+      }
+
+      message.textContent = id ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.';
+      clearForm();
+      loadUsers();
+    });
+
+    function editUser(id, name, email) {
+      document.getElementById('userId').value = id;
+      document.getElementById('name').value = name;
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = '';
+      message.textContent = 'Editando usuario seleccionado.';
+    }
+
+    async function deleteUser(id) {
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+      message.textContent = result.mensaje;
+      loadUsers();
+    }
+
+    function clearForm() {
+      document.getElementById('userId').value = '';
+      form.reset();
+    }
+
+    loadUsers();
+  </script>
 </body>
 </html>
