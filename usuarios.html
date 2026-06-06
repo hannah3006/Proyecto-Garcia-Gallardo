@@ -1,0 +1,20 @@
+
+let usuarios = []; 
+
+class UserService {
+    getAll() {
+        return usuarios;
+    }
+    create(datos) {
+        const nuevo = { id: Date.now().toString(), ...datos };
+        usuarios.push(nuevo);
+        return nuevo;
+    }
+    delete(id) {
+        const index = usuarios.findIndex(u => u.id === id);
+        if (index === -1) return false;
+        usuarios.splice(index, 1);
+        return true;
+    }
+}
+module.exports = new UserService();
