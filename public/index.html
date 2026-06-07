@@ -2,13 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>CRUD de usuarios</title>
+  <title>Gestor de usuarios</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 900px;
+      max-width: 950px;
       margin: 30px auto;
       padding: 20px;
+    }
+
+    section {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
     }
 
     input, button {
@@ -75,18 +82,17 @@
 
       usersTable.innerHTML = '';
 
-      users.forEach(user => {
+      users.forEach(function(user) {
         const row = document.createElement('tr');
 
-        row.innerHTML = `
-          <td>${user.id}</td>
-          <td>${user.name}</td>
-          <td>${user.email}</td>
-          <td>
-            <button onclick="editUser(${user.id}, '${user.name}', '${user.email}')">Editar</button>
-            <button onclick="deleteUser(${user.id})">Eliminar</button>
-          </td>
-        `;
+        row.innerHTML =
+          '<td>' + user.id + '</td>' +
+          '<td>' + user.name + '</td>' +
+          '<td>' + user.email + '</td>' +
+          '<td>' +
+          '<button onclick="editUser(' + user.id + ', \'' + user.name + '\', \'' + user.email + '\')">Editar</button>' +
+          '<button onclick="deleteUser(' + user.id + ')">Eliminar</button>' +
+          '</td>';
 
         usersTable.appendChild(row);
       });
@@ -101,11 +107,11 @@
       const password = document.getElementById('password').value;
 
       const data = id ? { name, email } : { name, email, password };
-      const url = id ? `/api/users/${id}` : '/api/users';
+      const url = id ? '/api/users/' + id : '/api/users';
       const method = id ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
-        method,
+        method: method,
         headers: {
           'Content-Type': 'application/json'
         },
@@ -133,7 +139,7 @@
     }
 
     async function deleteUser(id) {
-      const response = await fetch(`/api/users/${id}`, {
+      const response = await fetch('/api/users/' + id, {
         method: 'DELETE'
       });
 
@@ -148,6 +154,7 @@
     }
 
     loadUsers();
+    checkSession();
   </script>
 </body>
 </html>

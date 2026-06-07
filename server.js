@@ -1,4 +1,5 @@
 const express = require('express');
+const session = require('express-session');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
@@ -9,6 +10,13 @@ const DATA_FILE = path.join(__dirname, 'data', 'users.json');
 
 app.use(cors());
 app.use(express.json());
+
+app.use(session({
+  secret: 'clave-desarrollo-proyecto',
+  resave: false,
+  saveUninitialized: false
+}));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 function readUsers() {
@@ -40,6 +48,48 @@ app.get('/api/status', (req, res) => {
   res.json({
     mensaje: 'Servidor funcionando correctamente',
     proyecto: 'Proyecto-Garcia-Gallardo'
+  });
+});
+
+app.get('/api/session', (req, res) => {
+  if (!req.session.user) {
+    return res.json({
+      authenticated: false,
+      user: null
+    });
+  }
+
+  res.json({
+    authenticated: true,
+    user: req.session.user
+  });
+});
+
+app.post('/api/login', (req, res) => {
+  const { email, password } = req.body;
+  const users = readUsers();
+
+  const user = users.find(item => item.email === email && item.password === password);
+
+  if (!user) {
+    return res.status(401).json({
+      mensaje: 'Correo o contraseña incorrectos.'
+    });
+  }
+
+  req.session.user = publicUser(user);
+
+  res.json({
+    mensaje: 'Inicio de sesión correcto.',
+    user: req.session.user
+  });
+});
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.json({
+      mensaje: 'Sesión cerrada correctamente.'
+    });
   });
 });
 
@@ -125,5 +175,5 @@ app.delete('/api/users/:id', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor iniciado en http://localhost:${PORT}`);
+  console.log('Servidor iniciado en http://localhost:' + PORT);
 });
