@@ -42,100 +42,39 @@
   </style>
 </head>
 <body>
-  <h1>Gestor de usuarios</h1>
+  <h1>CRUD de usuarios</h1>
 
-  <section>
-    <h2>Login</h2>
+  <form id="userForm">
+    <input type="hidden" id="userId">
 
-    <form id="loginForm">
-      <input type="email" id="loginEmail" placeholder="Correo" required>
-      <input type="password" id="loginPassword" placeholder="Contraseña" required>
-      <button type="submit">Iniciar sesión</button>
-      <button type="button" onclick="logout()">Cerrar sesión</button>
-    </form>
+    <input type="text" id="name" placeholder="Nombre" required>
+    <input type="email" id="email" placeholder="Correo" required>
+    <input type="password" id="password" placeholder="Contraseña">
 
-    <p id="sessionStatus">No has iniciado sesión.</p>
-  </section>
+    <button type="submit">Guardar usuario</button>
+    <button type="button" onclick="clearForm()">Cancelar</button>
+  </form>
 
-  <section>
-    <h2>CRUD de usuarios</h2>
+  <p class="mensaje" id="message"></p>
 
-    <form id="userForm">
-      <input type="hidden" id="userId">
+  <h2>Lista de usuarios</h2>
 
-      <input type="text" id="name" placeholder="Nombre" required>
-      <input type="email" id="email" placeholder="Correo" required>
-      <input type="password" id="password" placeholder="Contraseña">
-
-      <button type="submit">Guardar usuario</button>
-      <button type="button" onclick="clearForm()">Cancelar</button>
-    </form>
-
-    <p class="mensaje" id="message"></p>
-
-    <h3>Lista de usuarios</h3>
-
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Correo</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="usersTable"></tbody>
-    </table>
-  </section>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="usersTable"></tbody>
+  </table>
 
   <script>
     const form = document.getElementById('userForm');
-    const loginForm = document.getElementById('loginForm');
     const usersTable = document.getElementById('usersTable');
     const message = document.getElementById('message');
-    const sessionStatus = document.getElementById('sessionStatus');
-
-    async function checkSession() {
-      const response = await fetch('/api/session');
-      const result = await response.json();
-
-      if (result.authenticated) {
-        sessionStatus.textContent = 'Sesión iniciada como: ' + result.user.name + ' (' + result.user.email + ')';
-      } else {
-        sessionStatus.textContent = 'No has iniciado sesión.';
-      }
-    }
-
-    loginForm.addEventListener('submit', async function(event) {
-      event.preventDefault();
-
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
-
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
-
-      const result = await response.json();
-      sessionStatus.textContent = result.mensaje;
-
-      checkSession();
-    });
-
-    async function logout() {
-      const response = await fetch('/api/logout', {
-        method: 'POST'
-      });
-
-      const result = await response.json();
-      sessionStatus.textContent = result.mensaje;
-
-      checkSession();
-    }
 
     async function loadUsers() {
       const response = await fetch('/api/users');
@@ -159,7 +98,7 @@
       });
     }
 
-    form.addEventListener('submit', async function(event) {
+    form.addEventListener('submit', async event => {
       event.preventDefault();
 
       const id = document.getElementById('userId').value;
