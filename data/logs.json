@@ -5,5 +5,26 @@
     "date": "2026-06-13T06:37:36.767Z",
     "ip": "::1",
     "action": "create"
+  },
+  {
+    "id": 1781334304842,
+    "user": "marco@test.com",
+    "date": "2026-06-13T07:05:04.842Z",
+    "ip": "::1",
+    "action": "create user"
+  },
+  {
+    "id": 1781334807607,
+    "user": "marco@test.com",
+    "date": "2026-06-13T07:13:27.607Z",
+    "ip": "::1",
+    "action": "password recovery token"
+  },
+  {
+    "id": 1781334880073,
+    "user": "marco@test.com",
+    "date": "2026-06-13T07:14:40.073Z",
+    "ip": "::1",
+    "action": "password reset"
   }
 ]
