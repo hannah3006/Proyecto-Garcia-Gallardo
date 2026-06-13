@@ -9,6 +9,7 @@ const PORT = 3000;
 
 const DATA_FILE = path.join(__dirname, 'data', 'users.json');
 const LOGS_FILE = path.join(__dirname, 'data', 'logs.json');
+const TOKENS_FILE = path.join(__dirname, 'data', 'password-tokens.json');
 
 app.use(cors());
 app.use(express.json());
@@ -21,21 +22,41 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// =========================
-// FUNCIONES DE USUARIOS
-// =========================
-
-function readUsers() {
-  if (!fs.existsSync(DATA_FILE)) {
+function readJsonFile(filePath) {
+  if (!fs.existsSync(filePath)) {
     return [];
   }
 
-  const content = fs.readFileSync(DATA_FILE, 'utf8');
+  const content = fs.readFileSync(filePath, 'utf8');
   return content ? JSON.parse(content) : [];
 }
 
+function saveJsonFile(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+function readUsers() {
+  return readJsonFile(DATA_FILE);
+}
+
 function saveUsers(users) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2));
+  saveJsonFile(DATA_FILE, users);
+}
+
+function readLogs() {
+  return readJsonFile(LOGS_FILE);
+}
+
+function saveLogs(logs) {
+  saveJsonFile(LOGS_FILE, logs);
+}
+
+function readTokens() {
+  return readJsonFile(TOKENS_FILE);
+}
+
+function saveTokens(tokens) {
+  saveJsonFile(TOKENS_FILE, tokens);
 }
 
 function publicUser(user) {
@@ -48,23 +69,6 @@ function publicUser(user) {
 
 function isValidEmail(email) {
   return email && email.includes('@') && email.includes('.');
-}
-
-// =========================
-// FUNCIONES DE LOGS
-// =========================
-
-function readLogs() {
-  if (!fs.existsSync(LOGS_FILE)) {
-    return [];
-  }
-
-  const content = fs.readFileSync(LOGS_FILE, 'utf8');
-  return content ? JSON.parse(content) : [];
-}
-
-function saveLogs(logs) {
-  fs.writeFileSync(LOGS_FILE, JSON.stringify(logs, null, 2));
 }
 
 function addLog(user, action, ip) {
@@ -84,9 +88,9 @@ function addLog(user, action, ip) {
   return newLog;
 }
 
-// =========================
-// ENDPOINT DE ESTADO
-// =========================
+function generateToken() {
+  return Math.random().toString(36).substring(2, 10) + Date.now();
+}
 
 app.get('/api/status', (req, res) => {
   res.json({
@@ -94,10 +98,6 @@ app.get('/api/status', (req, res) => {
     proyecto: 'Proyecto-Garcia-Gallardo'
   });
 });
-
-// =========================
-// ENDPOINTS DE SESIÓN
-// =========================
 
 app.get('/api/session', (req, res) => {
   if (!req.session.user) {
@@ -128,7 +128,6 @@ app.post('/api/login', (req, res) => {
   }
 
   req.session.user = publicUser(user);
-
   addLog(user.email, 'login', req.ip);
 
   res.json({
@@ -148,10 +147,6 @@ app.post('/api/logout', (req, res) => {
     });
   });
 });
-
-// =========================
-// ENDPOINTS CRUD DE USUARIOS
-// =========================
 
 app.get('/api/users', (req, res) => {
   const users = readUsers();
@@ -232,7 +227,6 @@ app.put('/api/users/:id', (req, res) => {
   users[index].email = email;
 
   saveUsers(users);
-
   addLog(email, 'update user', req.ip);
 
   res.json(publicUser(users[index]));
@@ -251,17 +245,12 @@ app.delete('/api/users/:id', (req, res) => {
   }
 
   saveUsers(filteredUsers);
-
   addLog(userDeleted ? userDeleted.email : 'desconocido', 'delete user', req.ip);
 
   res.json({
     mensaje: 'Usuario eliminado correctamente.'
   });
 });
-
-// =========================
-// API REST DE LOGS DE ACCESO
-// =========================
 
 app.get('/api/logs', (req, res) => {
   const logs = readLogs();
@@ -285,9 +274,87 @@ app.post('/api/logs', (req, res) => {
   });
 });
 
-// =========================
-// INICIAR SERVIDOR
-// =========================
+app.post('/api/password/forgot', (req, res) => {
+  const { email } = req.body;
+  const users = readUsers();
+
+  const user = users.find(item => item.email === email);
+
+  if (!user) {
+    return res.status(404).json({
+      mensaje: 'No existe un usuario con ese correo.'
+    });
+  }
+
+  const tokens = readTokens();
+  const token = generateToken();
+
+  const newToken = {
+    email: email,
+    token: token,
+    createdAt: new Date().toISOString()
+  };
+
+  tokens.push(newToken);
+  saveTokens(tokens);
+
+  console.log('Simulación de correo de recuperación');
+  console.log('Correo:', email);
+  console.log('Token:', token);
+
+  addLog(email, 'password recovery token', req.ip);
+
+  res.json({
+    mensaje: 'Token de recuperación generado. Revisar consola/log.',
+    token: token
+  });
+});
+
+app.post('/api/password/reset', (req, res) => {
+  const { email, token, newPassword } = req.body;
+
+  if (!email || !token || !newPassword) {
+    return res.status(400).json({
+      mensaje: 'Correo, token y nueva contraseña son obligatorios.'
+    });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      mensaje: 'La nueva contraseña debe tener mínimo 6 caracteres.'
+    });
+  }
+
+  const tokens = readTokens();
+  const validToken = tokens.find(item => item.email === email && item.token === token);
+
+  if (!validToken) {
+    return res.status(401).json({
+      mensaje: 'Token inválido.'
+    });
+  }
+
+  const users = readUsers();
+  const index = users.findIndex(item => item.email === email);
+
+  if (index === -1) {
+    return res.status(404).json({
+      mensaje: 'Usuario no encontrado.'
+    });
+  }
+
+  users[index].password = newPassword;
+  saveUsers(users);
+
+  const filteredTokens = tokens.filter(item => item.token !== token);
+  saveTokens(filteredTokens);
+
+  addLog(email, 'password reset', req.ip);
+
+  res.json({
+    mensaje: 'Contraseña actualizada correctamente.'
+  });
+});
 
 app.listen(PORT, () => {
   console.log('Servidor iniciado en http://localhost:' + PORT);
